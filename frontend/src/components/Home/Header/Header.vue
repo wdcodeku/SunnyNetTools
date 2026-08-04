@@ -45,7 +45,7 @@ export default {
       set Roll(value) {
         Config_AutoRoll.value = value
       },
-      version: "v1.0.0"
+      version: "1.0.1"
     }
   }
   ,

@@ -170,6 +170,22 @@ task build
 
 各平台详细打包见 `build/windows`、`build/linux`、`build/darwin` 下的 Taskfile。
 
+### 自动构建与发布
+
+仓库内置 GitHub Actions 三端构建：
+
+- Windows amd64：`SunnyNetTools-v1.0.1-windows-amd64.zip`
+- Linux amd64：`SunnyNetTools-v1.0.1-linux-amd64.tar.gz`
+- macOS universal（Intel + Apple Silicon）：`SunnyNetTools-v1.0.1-macos-universal.zip`
+
+推送到 `main` 后会更新 GitHub Releases 中的 `continuous` 预发布版本；推送形如
+`v1.0.1` 的标签后会创建对应的正式 Release。Pull Request 只执行三端构建验证，不发布。
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
 ---
 
 ## 目录结构（简要）

@@ -714,7 +714,7 @@ func (g *AppMain) AppSaveRequestImg(Theology int, ImgType string, IsRequest bool
 	return ""
 }
 
-const appReleaseVersion = "4.1.0"
+const appReleaseVersion = "1.0.1"
 
 // AppVersion 获取软件版本号
 func (g *AppMain) AppVersion() string {

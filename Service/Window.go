@@ -103,7 +103,7 @@ func CreateMainWindow(assets embed.FS) *application.App {
 	})
 
 	Config.AppList["Main"] = Config.NewAppWindow(app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title: "SunnyNetTools 网络抓包工具",
+		Title: fmt.Sprintf("SunnyNet网络中间件 v%s", appReleaseVersion),
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,
 			Backdrop:                application.MacBackdropTranslucent,

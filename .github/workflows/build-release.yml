@@ -1,0 +1,208 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_VERSION: "1.0.1"
+  GO_VERSION: "1.25.x"
+  NODE_VERSION: "22"
+  WAILS_VERSION: "v3.0.0-alpha.71"
+
+jobs:
+  windows:
+    name: Windows amd64
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Build frontend
+        run: npm --prefix frontend run build
+      - name: Prepare Go and Windows CGO
+        shell: pwsh
+        run: |
+          go mod download
+          if (-not (Get-Command gcc -ErrorAction SilentlyContinue)) {
+            choco install mingw -y --no-progress
+          }
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+          & .github/scripts/patch-sunnynet-windows.ps1
+      - name: Build Windows executable
+        shell: pwsh
+        env:
+          CGO_ENABLED: "1"
+          GOARCH: amd64
+          GOEXPERIMENT: nodwarf5
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
+          go build -tags production -trimpath -buildvcs=false -ldflags '-w -s -H windowsgui' -o dist/SunnyNetTools.exe
+          [IO.File]::Delete((Join-Path $PWD 'wails_windows_amd64.syso'))
+          $productVersion = (Get-Item dist/SunnyNetTools.exe).VersionInfo.ProductVersion
+          if ($productVersion -notin @($env:APP_VERSION, "v$env:APP_VERSION")) {
+            throw "Unexpected Windows product version: '$productVersion'"
+          }
+      - name: Package Windows archive
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist/package -Force | Out-Null
+          Copy-Item dist/SunnyNetTools.exe, LICENSE, README.md -Destination dist/package
+          Compress-Archive -Path dist/package/* -DestinationPath "dist/SunnyNetTools-v${{ env.APP_VERSION }}-windows-amd64.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SunnyNetTools-v${{ env.APP_VERSION }}-windows-amd64
+          path: dist/SunnyNetTools-v${{ env.APP_VERSION }}-windows-amd64.zip
+          if-no-files-found: error
+
+  linux:
+    name: Linux amd64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Install and build frontend
+        run: |
+          npm ci --prefix frontend
+          npm --prefix frontend run build
+      - name: Build Linux executable
+        env:
+          CGO_ENABLED: "1"
+          GOARCH: amd64
+        run: |
+          go mod download
+          package="SunnyNetTools-v${APP_VERSION}-linux-amd64"
+          mkdir -p "dist/${package}"
+          go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o "dist/${package}/SunnyNetTools"
+          cp LICENSE README.md "dist/${package}/"
+          tar -C dist -czf "dist/${package}.tar.gz" "${package}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SunnyNetTools-v${{ env.APP_VERSION }}-linux-amd64
+          path: dist/SunnyNetTools-v${{ env.APP_VERSION }}-linux-amd64.tar.gz
+          if-no-files-found: error
+
+  macos:
+    name: macOS universal
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install and build frontend
+        run: |
+          npm ci --prefix frontend
+          npm --prefix frontend run build
+      - name: Build universal macOS application
+        env:
+          CGO_ENABLED: "1"
+          CGO_CFLAGS: -mmacosx-version-min=10.15
+          CGO_LDFLAGS: -mmacosx-version-min=10.15
+          MACOSX_DEPLOYMENT_TARGET: "10.15"
+        run: |
+          go mod download
+          mkdir -p dist/build
+          GOARCH=amd64 go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o dist/build/SunnyNetTools-amd64
+          GOARCH=arm64 go build -tags production -trimpath -buildvcs=false -ldflags="-w -s" -o dist/build/SunnyNetTools-arm64
+          lipo -create -output dist/build/SunnyNetTools dist/build/SunnyNetTools-amd64 dist/build/SunnyNetTools-arm64
+          mkdir -p dist/SunnyNetTools.app/Contents/MacOS dist/SunnyNetTools.app/Contents/Resources
+          cp dist/build/SunnyNetTools dist/SunnyNetTools.app/Contents/MacOS/
+          cp build/darwin/Info.plist dist/SunnyNetTools.app/Contents/
+          cp build/darwin/icons.icns dist/SunnyNetTools.app/Contents/Resources/
+          codesign --force --deep --sign - dist/SunnyNetTools.app
+          ditto -c -k --sequesterRsrc --keepParent dist/SunnyNetTools.app "dist/SunnyNetTools-v${APP_VERSION}-macos-universal.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SunnyNetTools-v${{ env.APP_VERSION }}-macos-universal
+          path: dist/SunnyNetTools-v${{ env.APP_VERSION }}-macos-universal.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push'
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify release tag matches application version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" != "v${APP_VERSION}" ]]; then
+            echo "::error::Release tag $GITHUB_REF_NAME must be v${APP_VERSION}"
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Generate checksums
+        working-directory: release
+        run: sha256sum SunnyNetTools-* > SHA256SUMS.txt
+      - name: Publish version or continuous release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="$GITHUB_REF_NAME"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              gh release upload "$tag" release/* --clobber
+            else
+              gh release create "$tag" release/* --verify-tag --generate-notes --title "SunnyNetTools $tag"
+            fi
+          else
+            tag="continuous"
+            gh release delete "$tag" --yes --cleanup-tag >/dev/null 2>&1 || true
+            gh release create "$tag" release/* \
+              --target "$GITHUB_SHA" \
+              --title "SunnyNetTools v${APP_VERSION} Continuous Build" \
+              --notes "Automated build from main at $GITHUB_SHA" \
+              --prerelease
+          fi
