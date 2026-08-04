@@ -1,5 +1,5 @@
 <script>
-import {GetImage} from "../Tools/image.JS";
+import {GetImage} from "../Tools/image.js";
 
 export default {
   setup(props) {
@@ -23,4 +23,4 @@ export default {
   <div style="cursor: pointer; display: flex; align-items: center;">
     <img :src="imageBase64" style="height: 22px;width: 22px"/>&nbsp;{{ value }}
   </div>
-</template>>
+</template>

@@ -19,7 +19,7 @@ env:
   APP_VERSION: "1.0.1"
   GO_VERSION: "1.25.x"
   NODE_VERSION: "22"
-  WAILS_VERSION: "v3.0.0-alpha.71"
+  RCEDIT_VERSION: "5.0.2"
 
 jobs:
   windows:
@@ -48,7 +48,7 @@ jobs:
           if (-not (Get-Command gcc -ErrorAction SilentlyContinue)) {
             choco install mingw -y --no-progress
           }
-          go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+          npm install --no-save --no-package-lock rcedit@${{ env.RCEDIT_VERSION }}
           & .github/scripts/patch-sunnynet-windows.ps1
       - name: Build Windows executable
         shell: pwsh
@@ -58,12 +58,15 @@ jobs:
           GOEXPERIMENT: nodwarf5
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
-          wails3 generate syso -arch amd64 -icon build/windows/icon.ico -manifest build/windows/wails.exe.manifest -info build/windows/info.json -out wails_windows_amd64.syso
           go build -tags production -trimpath -buildvcs=false -ldflags '-w -s -H windowsgui' -o dist/SunnyNetTools.exe
-          [IO.File]::Delete((Join-Path $PWD 'wails_windows_amd64.syso'))
+          node .github/scripts/set-windows-resources.mjs dist/SunnyNetTools.exe build/windows/icon.ico build/windows/wails.exe.manifest
           $productVersion = (Get-Item dist/SunnyNetTools.exe).VersionInfo.ProductVersion
+          $fileVersion = (Get-Item dist/SunnyNetTools.exe).VersionInfo.FileVersion
           if ($productVersion -notin @($env:APP_VERSION, "v$env:APP_VERSION")) {
             throw "Unexpected Windows product version: '$productVersion'"
+          }
+          if ($fileVersion -notin @($env:APP_VERSION, "v$env:APP_VERSION")) {
+            throw "Unexpected Windows file version: '$fileVersion'"
           }
       - name: Package Windows archive
         shell: pwsh
