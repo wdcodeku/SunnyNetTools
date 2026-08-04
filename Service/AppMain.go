@@ -7,7 +7,6 @@ import (
 	"changeme/Service/Tools/DebugTools"
 	"changeme/Service/clipboard"
 	"changeme/Service/mcp"
-	"changeme/Welcome"
 	"fmt"
 	"runtime"
 	"time"
@@ -75,12 +74,6 @@ func (g *AppMain) Start() {
 		}
 	}()
 	g.app.Start()
-	if runtime.GOOS == "windows" {
-		go func() {
-			Config.AppList["Main"].Show()
-			Welcome.Stop()
-		}()
-	}
 	g.IsStart = g.app.Error == nil
 }
 

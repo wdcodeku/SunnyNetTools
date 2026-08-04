@@ -714,9 +714,24 @@ func (g *AppMain) AppSaveRequestImg(Theology int, ImgType string, IsRequest bool
 	return ""
 }
 
-// AppVersion 获取SDK版本信息
+const appReleaseVersion = "4.1.0"
+
+// AppVersion 获取软件版本号
 func (g *AppMain) AppVersion() string {
-	return public.SunnyVersion + " " + os.Getenv("minor_version")
+	return appReleaseVersion
+}
+
+// AppBuildTime 获取当前可执行文件的生成时间，供“关于”页面展示。
+func (g *AppMain) AppBuildTime() string {
+	executable, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	info, err := os.Stat(executable)
+	if err != nil {
+		return ""
+	}
+	return info.ModTime().Format("2006-01-02 15:04:05")
 }
 
 func init() {

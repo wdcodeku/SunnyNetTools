@@ -8,7 +8,6 @@ import (
 	"changeme/Service/mcpbridge"
 	"embed"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -99,7 +98,7 @@ func CreateMainWindow(assets embed.FS) *application.App {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
-		Logger:  slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:  slog.New(slog.NewTextHandler(os.Stderr, nil)),
 		Windows: application.WindowsOptions{WebviewBrowserPath: getWebviewBrowserPath()},
 	})
 
@@ -118,38 +117,19 @@ func CreateMainWindow(assets embed.FS) *application.App {
 		MinHeight:        780,
 		EnableFileDrop:   true,
 		Frameless:        true,
-		DevToolsEnabled:  true,
+		DevToolsEnabled:  false,
 	}))
 	go func() {
 		time.Sleep(400 * time.Millisecond)
 		mcpbridge.EmitMCPBridgeChanged()
 	}()
-	go func() {
-		time.Sleep(1 * time.Second)
-		Config.AppList["Main"].OpenDevTools()
-	}()
 	Config.AppList["Main"].RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		CloseWindow()
-		Config.AppList["Main"].Hide()
-		go func() {
-			time.Sleep(time.Second)
-			os.Exit(0)
-		}()
 	})
 	clipboard.AppWindow = Config.AppList["Main"].WebviewWindow
 	registerWindowFilesDropped("Main")
 	if runtime.GOOS == "windows" {
-		Config.AppList["Main"].Hide()
 		HookKeys.RegisterKeys(Config.Config.Keys, Server.CallKeys)
-		go func() {
-			time.Sleep(time.Second * 3)
-			CreateCertWindow()
-			CreateReplaceWindow()
-			CreateThemeDesignWindow()
-			CreateThemeWindow()
-			CreateOtherWindow()
-			CreateDebugWindow()
-		}()
 	}
 
 	return app

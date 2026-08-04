@@ -115,8 +115,7 @@
             </div>
           </div>
           <div v-if="capLoading" class="mcp-cap-loading">加载中…</div>
-          <iframe v-else-if="capDocUrl" class="mcp-cap-iframe" :src="capDocUrl" title="MCP 文档"/>
-          <div v-else class="mcp-cap-list">
+          <div v-else-if="capOps.length" class="mcp-cap-list">
             <div v-for="item in capOps" :key="item.op" class="mcp-cap-item">
               <div class="mcp-cap-op">{{ item.op }}</div>
               <p v-if="item.args" class="mcp-cap-meta"><span>参数</span>{{ item.args }}</p>
@@ -124,6 +123,9 @@
               <p v-if="item.returns" class="mcp-cap-meta"><span>返回</span>{{ item.returns }}</p>
             </div>
           </div>
+          <iframe v-else-if="capDocUrl" class="mcp-cap-iframe" :src="capDocUrl" title="MCP 文档"
+                  tabindex="0"/>
+          <div v-else class="mcp-cap-loading">暂无能力数据</div>
         </div>
       </div>
     </transition>
@@ -861,6 +863,11 @@ export default {
   padding: 0;
   background: transparent;
   box-sizing: border-box;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
 .mcp-cap-dialog {
@@ -874,6 +881,11 @@ export default {
   overflow: hidden;
   border: none;
   box-shadow: none;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
 .mcp-cap-dialog-dark {
@@ -946,6 +958,12 @@ export default {
   width: 100%;
   border: none;
   background: #020617;
+  display: block;
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
 }
 
 .mcp-cap-list {
@@ -956,6 +974,16 @@ export default {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(96, 165, 250, 0.55) rgba(15, 23, 42, 0.35);
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-app-region: no-drag;
+  --wails-draggable: no-drag;
+}
+
+.mcp-cap-list * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 
 .mcp-cap-list::-webkit-scrollbar {

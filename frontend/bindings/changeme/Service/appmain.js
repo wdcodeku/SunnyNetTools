@@ -27,6 +27,14 @@ import * as mcp$0 from "./mcp/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AppBuildTime 获取构建时间信息
+ * @returns {$CancellablePromise<string>}
+ */
+export function AppBuildTime() {
+    return $Call.ByID(172045907);
+}
+
+/**
  * @returns {$CancellablePromise<boolean>}
  */
 export function AppCheckSunnyNet() {
@@ -728,6 +736,15 @@ export function GetSocketFilter(theology) {
 }
 
 /**
+ * GetStartupDeviceMode returns the driver mode requested by an elevated
+ * restart. -1 means this is a normal application start.
+ * @returns {$CancellablePromise<number>}
+ */
+export function GetStartupDeviceMode() {
+    return $Call.ByID(333410531);
+}
+
+/**
  * @param {boolean} newTour
  * @returns {$CancellablePromise<boolean>}
  */
@@ -1029,6 +1046,17 @@ export function RequestCertRemove(id) {
  */
 export function RequestCertSetFile(id, role, DoMain, file, pass, note) {
     return $Call.ByID(3341316868, id, role, DoMain, file, pass, note);
+}
+
+/**
+ * RequestDeviceElevation keeps normal startup unelevated and requests UAC only
+ * when a driver is about to be loaded. On success, the elevated instance is
+ * given the selected mode and the current instance exits after replying to UI.
+ * @param {number} mode
+ * @returns {$CancellablePromise<string>}
+ */
+export function RequestDeviceElevation(mode) {
+    return $Call.ByID(1622603737, mode);
 }
 
 /**

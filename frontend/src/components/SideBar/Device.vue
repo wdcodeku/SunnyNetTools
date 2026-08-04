@@ -2,9 +2,11 @@
 
 import {
   GOOS,
+  GetStartupDeviceMode,
   IsLoadDevice,
   LoadDevice,
   ProcessAny,
+  RequestDeviceElevation,
   SetDeviceStopUpdate
 } from "../../../bindings/changeme/Service/appmain";
 import {ElNotification} from "element-plus";
@@ -59,9 +61,39 @@ export default {
     },
     loadDrive() {
       this.DriveLoading = true
-      IsLoadDevice().then(ok => {
+      const mode = this.LoadMode === "NFAPI" ? 1 : (this.LoadMode === "Proxifier" ? 0 : 2)
+      RequestDeviceElevation(mode).then(status => {
+        if (status === "restarting") {
+          ElNotification({
+            position: 'bottom-right',
+            message: '已获得管理员授权，正在重启并继续加载驱动...',
+            type: 'success',
+            customClass: 'multiline-message'
+          })
+          return
+        }
+        if (status === "cancelled") {
+          this.DriveLoading = false
+          ElNotification({
+            position: 'bottom-right',
+            message: '已取消管理员授权，驱动未加载',
+            type: 'warning',
+            customClass: 'multiline-message'
+          })
+          return
+        }
+        if (status !== "ready") {
+          this.DriveLoading = false
+          ElNotification({
+            position: 'bottom-right',
+            message: '请求管理员权限失败\n\n' + status.replace(/^error:/, ''),
+            type: 'error',
+            customClass: 'multiline-message'
+          })
+          return
+        }
+        IsLoadDevice().then(ok => {
         if (!ok) {
-          const mode = this.LoadMode === "NFAPI" ? 1 : (this.LoadMode === "Proxifier" ? 0 : 2)
           LoadDevice(mode).then(ok2 => {
             if (!ok2) {
               this.LoadDrive = false
@@ -81,6 +113,7 @@ export default {
         }
         this.LoadDrive = true
         this.DriveLoading = false
+        })
       })
     },
     updateBoxHeight() {
@@ -124,6 +157,13 @@ export default {
     GOOS().then((IsWindows) => {
       this.IsWindows = IsWindows
       window.addEventListener('resize', this.updateBoxHeight)
+      GetStartupDeviceMode().then(mode => {
+        if (mode < 0 || mode > 2) {
+          return
+        }
+        this.LoadMode = mode === 1 ? "NFAPI" : (mode === 0 ? "Proxifier" : "Tun")
+        this.loadDrive()
+      })
     })
   }
 }

@@ -29,6 +29,7 @@ import {
   AppResendRequest,
   FreeAllRequest,
   GetColumnState,
+  GetStartupDeviceMode,
   GetPort,
   GOOS,
   ListSearch,
@@ -431,6 +432,11 @@ export default {
               maxWidth: 400,
             })
         this.agGridApiMain.setGridOption('sideBar', sideBar);
+        GetStartupDeviceMode().then(mode => {
+          if (mode >= 0 && mode <= 2) {
+            requestAnimationFrame(() => this.agGridApiMain.openToolPanel("Device"));
+          }
+        });
       })
     }
     Config_agGrid_API.value = this.$refs.agGrid.api;

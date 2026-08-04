@@ -28,7 +28,7 @@ export default {
       return this.Title === '文本对比'
     },
     isMCP() {
-      return this.Title === 'MCO能力描述'
+      return this.Title === 'MCP能力描述'
     },
   },
   mounted() {
@@ -51,9 +51,12 @@ export default {
         setTimeout(() => {
           try {
             const iframe = document.getElementById('myIframe');
-            iframe.contentWindow.document.addEventListener('contextmenu', function (e) {
-              e.preventDefault();
-            });
+            // MCP 文档允许选择文字，并保留右键菜单用于复制。
+            if (this.Title !== 'MCP能力描述') {
+              iframe.contentWindow.document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+              });
+            }
           } catch (err) {
             // 如果 iframe 跨域，就无法访问其 contentWindow.document
             console.warn('无法访问 iframe 内容，可能是跨域限制');
@@ -90,12 +93,12 @@ export default {
 
 <template>
   <div class="fullscreen-div"
-       style="display: block;width: 100%;height: 100%;position: absolute;user-select: none;overflow:hidden">
+       :style="{display:'block',width:'100%',height:'100%',position:'absolute',userSelect:isMCP?'text':'none',overflow:'hidden'}">
     <div style="width: 100%;height: 100%;display: block">
       <TitleBar :Title="Title"></TitleBar>
       <div style="width: 100% ;height:100% ;position: relative;overflow:hidden">
         <iframe id="myIframe" v-show="(!isCertInstall&&!isCodeCreate&&!isDiffText)||isMCP" :src="Url"
-                style="width:  calc(100% - 5px);height:  calc(100% - 25px);">
+                :style="{width:'calc(100% - 5px)',height:'calc(100% - 25px)',userSelect:isMCP?'text':'auto'}">
         </iframe>
         <div v-show="isCertInstall"
              style="width:  100%;height:  calc(100% - 45px);position: relative;justify-content: center;align-content: center;text-align: center">

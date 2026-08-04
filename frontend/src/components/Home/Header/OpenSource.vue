@@ -1,15 +1,28 @@
 <script>
 
-import {ClipboardWriteAll} from "../../../../bindings/changeme/Service/appmain";
+import {AppBuildTime, AppVersion, ClipboardWriteAll} from "../../../../bindings/changeme/Service/appmain";
 import {ElNotification} from "element-plus";
+import {Browser} from "@wailsio/runtime";
 
 export default {
   data() {
     return {
       WayContent: [],
+      version: "",
+      buildTime: "",
     }
   },
   methods: {
+    open(url) {
+      Browser.OpenURL(url).catch(err => {
+        ElNotification({
+          position: 'bottom-left',
+          message: '打开链接失败\n\n' + err,
+          type: 'warning',
+          customClass: 'multiline-message'
+        })
+      })
+    },
     copy(a) {
       ClipboardWriteAll(a).then(res => {
         if (res !== '') {
@@ -31,6 +44,8 @@ export default {
     }
   },
   mounted() {
+    AppVersion().then(version => this.version = version)
+    AppBuildTime().then(buildTime => this.buildTime = buildTime)
   }
 }
 </script>
@@ -49,26 +64,32 @@ export default {
       </el-text>
       <el-divider/>
       <div style="margin-right: 30px;">
+        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 8px 12px; align-items: center;">
+          <span>软件版本</span><el-tag type="info">v{{ version }}</el-tag>
+          <span>更新时间</span><el-tag type="info">{{ buildTime || '未设置' }}</el-tag>
+        </div>
+        <el-divider/>
         当前软件源码
-        <el-tag class="ml-2" type="success">https://github.com/qtgolang/SunnyNet</el-tag>
+        <el-tag class="ml-2" type="success" style="cursor: pointer"
+                @click="open('https://github.com/qtgolang/SunnyNet')">https://github.com/qtgolang/SunnyNet</el-tag>
         <br><br>
         获取SDK及源码、文档,请访问 以下任意地址
         <br><br>
         <div style="display: flex; flex-wrap: wrap;">
           <el-tag style="margin-top: 5px; margin-left: 10px;cursor: pointer" type="danger"
-                  @click="copy('https://esunny.vip')">https://esunny.vip
+                  @click="open('https://esunny.vip')">https://esunny.vip
           </el-tag>
           <el-tag style="margin-top: 5px; margin-left: 10px;cursor: pointer" type="danger"
-                  @click="copy('https://www.esunny.vip')">https://www.esunny.vip
+                  @click="open('https://www.esunny.vip')">https://www.esunny.vip
           </el-tag>
           <el-tag style="margin-top: 5px; margin-left: 10px;cursor: pointer" type="danger"
-                  @click="copy('https://github.esunny.vip')">https://github.esunny.vip
+                  @click="open('https://github.esunny.vip')">https://github.esunny.vip
           </el-tag>
           <el-tag style="margin-top: 5px; margin-left: 10px;cursor: pointer" type="danger"
-                  @click="copy('https://gitee.com/qtr/SunnyNe')">https://gitee.com/qtr/SunnyNet
+                  @click="open('https://gitee.com/qtr/SunnyNet')">https://gitee.com/qtr/SunnyNet
           </el-tag>
           <el-tag style="margin-top: 5px; margin-left: 10px;cursor: pointer" type="danger"
-                  @click="copy('https://github.com/qtgolang/SunnyNet')">https://github.com/qtgolang/SunnyNet
+                  @click="open('https://github.com/qtgolang/SunnyNet')">https://github.com/qtgolang/SunnyNet
           </el-tag>
         </div>
         <br>
@@ -87,7 +108,7 @@ export default {
         <br>
         <el-text class="mx-1" style="margin-top: 0; margin-left: 23px;" type="success">QQ频道 :</el-text>
         <el-tag class="ml-2" style="margin-top: -5px; margin-left: 10px;cursor: pointer" type="danger"
-                @click="copy('https://pd.qq.com/g/SunnyNetV5')">https://pd.qq.com/g/SunnyNetV5
+                @click="open('https://pd.qq.com/g/SunnyNetV5')">https://pd.qq.com/g/SunnyNetV5
         </el-tag>
       </div>
       <template #reference>
@@ -95,7 +116,7 @@ export default {
           <span data-ref="eBuilderFilterButtonIcon">
             <span class="ag-icon ag-icon-eye" style="margin-right: 5px"/>
           </span>
-          <span class="ag-advanced-filter-builder-button-label" style="margin-right: 10px">源代码</span>
+          <span class="ag-advanced-filter-builder-button-label" style="margin-right: 10px">关于</span>
         </button>
       </template>
     </el-popover>
